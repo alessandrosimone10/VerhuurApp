@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #env
 .env
 .env.*
@@ -28,7 +27,7 @@ dist-ssr
 *.sln
 *.sw?
 
-=======
+
 #env
 .env
 .env.*
@@ -58,5 +57,4 @@ dist-ssr
 *.sln
 *.sw?
 
->>>>>>> 87e8be04d619a15b6247f6681d0c94349ab12375
 .env
