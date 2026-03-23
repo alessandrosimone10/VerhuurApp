@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import base44 from "@base44/vite-plugin"
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
@@ -18,7 +17,7 @@ export default defineConfig({
     }),
     react(),
   ]
-=======
+
 import base44 from "@base44/vite-plugin"
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
@@ -38,5 +37,4 @@ export default defineConfig({
     }),
     react(),
   ]
->>>>>>> 87e8be04d619a15b6247f6681d0c94349ab12375
 });
