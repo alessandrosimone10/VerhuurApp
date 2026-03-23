@@ -1,7 +1,11 @@
 // src/api/base44Client.js
-const APP_ID = process.env.REACT_APP_APP_ID;
-const API_KEY = process.env.REACT_APP_API_KEY;
-const BASE_URL = `/api/apps/${APP_ID}`;
+
+// Haal de environment variabelen op (Vite gebruikt import.meta.env)
+const APP_ID = import.meta.env.VITE_APP_ID;
+const API_KEY = import.meta.env.VITE_APP_API_KEY;
+
+// ⚠️ Vervang deze URL door de echte Base44 API endpoint (vraag aan Base44)
+const BASE_URL = `https://api.base44.com/v1/apps/${APP_ID}`;
 
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
@@ -11,20 +15,40 @@ async function request(endpoint, options = {}) {
     ...options.headers,
   };
   const response = await fetch(url, { ...options, headers });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}`;
+    try {
+      const errorBody = await response.json();
+      errorMessage = errorBody.message || errorMessage;
+    } catch {
+      // ignore
+    }
+    throw new Error(errorMessage);
+  }
   return response.json();
 }
 
 function createEntityMethods(entityName) {
   return {
-    list: (sort = "-created_date", limit = 500) => {
-      // Je kunt sort en limit verwerken in de query parameters
-      return request(`/entities/${entityName}?sort=${sort}&limit=${limit}`);
+    // Lijst met optionele filters, sortering en limiet
+    list: (filters = {}, sort = "-created_date", limit = 500) => {
+      const params = new URLSearchParams({
+        ...filters,
+        sort,
+        limit,
+      }).toString();
+      return request(`/entities/${entityName}?${params}`);
     },
-    update: (id, data) => {
-      return request(`/entities/${entityName}/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+    // Alias voor list met alleen filters (handig voor simpele zoekopdrachten)
+    filter: (filters = {}) => {
+      const params = new URLSearchParams(filters).toString();
+      return request(`/entities/${entityName}?${params}`);
     },
-    // Voeg create, delete toe als nodig
+
+    create: (data) => request(`/entities/${entityName}`, { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => request(`/entities/${entityName}/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => request(`/entities/${entityName}/${id}`, { method: 'DELETE' }),
   };
 }
 
