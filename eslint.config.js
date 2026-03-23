@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import globals from "globals";
 import pluginJs from "@eslint/js";
 import pluginReact from "eslint-plugin-react";
@@ -59,7 +58,7 @@ export default [
     },
   },
 ];
-=======
+
 import globals from "globals";
 import pluginJs from "@eslint/js";
 import pluginReact from "eslint-plugin-react";
@@ -120,4 +119,3 @@ export default [
     },
   },
 ];
->>>>>>> 87e8be04d619a15b6247f6681d0c94349ab12375
