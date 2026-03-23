@@ -1,0 +1,22 @@
+{
+  "name": "Instelling",
+  "type": "object",
+  "properties": {
+    "sleutel": {
+      "type": "string",
+      "description": "Unieke sleutel van de instelling"
+    },
+    "waarde": {
+      "type": "string",
+      "description": "Waarde van de instelling"
+    },
+    "label": {
+      "type": "string",
+      "description": "Leesbaar label"
+    }
+  },
+  "required": [
+    "sleutel",
+    "waarde"
+  ]
+}

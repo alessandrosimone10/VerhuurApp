@@ -1,0 +1,27 @@
+{
+  "name": "Racket",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "naam": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Beschikbaar",
+        "Verhuurd"
+      ],
+      "default": "Beschikbaar"
+    },
+    "type": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "naam"
+  ]
+}

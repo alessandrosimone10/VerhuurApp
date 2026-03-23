@@ -1,0 +1,33 @@
+# Python Example: Reading Entities
+# Filterable fields: sleutel, waarde, label
+import requests
+
+def make_api_request(api_path, method='GET', data=None):
+    url = f'/api/{api_path}'
+    headers = {
+        'api_key': '702d9c64eb84400cbf47511b934db230',
+        'Content-Type': 'application/json'
+    }
+    if method.upper() == 'GET':
+        response = requests.request(method, url, headers=headers, params=data)
+    else:
+        response = requests.request(method, url, headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()
+
+entities = make_api_request(f'apps/69a5764c33eb34826231f3d2/entities/Instelling')
+print(entities)
+
+# Python Example: Updating an Entity
+# Filterable fields: sleutel, waarde, label
+def update_entity(entity_id, update_data):
+    response = requests.put(
+        f'/api/apps/69a5764c33eb34826231f3d2/entities/Instelling/{entity_id}',
+        headers={
+            'api_key': '702d9c64eb84400cbf47511b934db230',
+            'Content-Type': 'application/json'
+        },
+        json=update_data
+    )
+    response.raise_for_status()
+    return response.json()

@@ -1,0 +1,36 @@
+{
+  "name": "Factuur",
+  "type": "object",
+  "properties": {
+    "factuurnr": {
+      "type": "string"
+    },
+    "verhuurnr": {
+      "type": "string"
+    },
+    "klantnr": {
+      "type": "string"
+    },
+    "bedrag": {
+      "type": "number"
+    },
+    "datum": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Openstaand",
+        "Betaald",
+        "Geannuleerd"
+      ],
+      "default": "Openstaand"
+    }
+  },
+  "required": [
+    "verhuurnr",
+    "klantnr",
+    "bedrag"
+  ]
+}

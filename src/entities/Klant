@@ -1,0 +1,34 @@
+{
+  "name": "Klant",
+  "type": "object",
+  "properties": {
+    "klantnr": {
+      "type": "string"
+    },
+    "voornaam": {
+      "type": "string"
+    },
+    "naam": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "telefoon": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Actief",
+        "Inactief"
+      ],
+      "default": "Actief"
+    }
+  },
+  "required": [
+    "voornaam",
+    "naam",
+    "email"
+  ]
+}

@@ -1,0 +1,27 @@
+// JavaScript Example: Reading Entities
+// Filterable fields: klantnr, voornaam, naam, email, telefoon, status
+async function fetchKlantEntities() {
+    const response = await fetch(`/api/apps/69a5764c33eb34826231f3d2/entities/Klant`, {
+        headers: {
+            'api_key': '702d9c64eb84400cbf47511b934db230', // or use await User.me() to get the API key
+            'Content-Type': 'application/json'
+        }
+    });
+    const data = await response.json();
+    console.log(data);
+}
+
+// JavaScript Example: Updating an Entity
+// Filterable fields: klantnr, voornaam, naam, email, telefoon, status
+async function updateKlantEntity(entityId, updateData) {
+    const response = await fetch(`/api/apps/69a5764c33eb34826231f3d2/entities/Klant/${entityId}`, {
+        method: 'PUT',
+        headers: {
+            'api_key': '702d9c64eb84400cbf47511b934db230', // or use await User.me() to get the API key
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+    });
+    const data = await response.json();
+    console.log(data);
+}

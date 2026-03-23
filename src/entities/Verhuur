@@ -1,0 +1,67 @@
+{
+  "name": "Verhuur",
+  "type": "object",
+  "properties": {
+    "verhuurnr": {
+      "type": "string"
+    },
+    "voornaam": {
+      "type": "string"
+    },
+    "naam": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "klantnr": {
+      "type": "string"
+    },
+    "telefoon": {
+      "type": "string"
+    },
+    "racket": {
+      "type": "string"
+    },
+    "racketcode": {
+      "type": "string"
+    },
+    "teamplayer": {
+      "type": "string"
+    },
+    "huurdatum": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "retourdatum": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "afgewerkt": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Goedgekeurd",
+        "Actief",
+        "Verlopen",
+        "Afgewerkt"
+      ],
+      "default": "Goedgekeurd"
+    },
+    "notitie": {
+      "type": "string"
+    },
+    "factuurnr": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "voornaam",
+    "naam",
+    "racket",
+    "racketcode"
+  ]
+}
