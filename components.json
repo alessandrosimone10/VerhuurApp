@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 {
   "$schema": "https://ui.shadcn.com/schema.json",
   "style": "new-york",
@@ -19,7 +18,7 @@
     "hooks": "@/hooks"
   },
   "iconLibrary": "lucide"
-=======
+
 {
   "$schema": "https://ui.shadcn.com/schema.json",
   "style": "new-york",
@@ -40,5 +39,4 @@
     "hooks": "@/hooks"
   },
   "iconLibrary": "lucide"
->>>>>>> 87e8be04d619a15b6247f6681d0c94349ab12375
 }
