@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 {
   "name": "base44-app",
   "private": true,
@@ -98,7 +97,7 @@
     "typescript": "^5.8.2",
     "vite": "^6.1.0"
   }
-=======
+
 {
   "name": "base44-app",
   "private": true,
@@ -198,5 +197,4 @@
     "typescript": "^5.8.2",
     "vite": "^6.1.0"
   }
->>>>>>> 87e8be04d619a15b6247f6681d0c94349ab12375
 }
