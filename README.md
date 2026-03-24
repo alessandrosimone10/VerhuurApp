@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 **Welcome to your Base44 project** 
 
 **About**
@@ -40,7 +39,7 @@ Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.
 Support: [https://app.base44.com/support](https://app.base44.com/support)
 "# VerhuurApp" 
 "# VerhuurApp" 
-=======
+
 **Welcome to your Base44 project** 
 
 **About**
@@ -81,4 +80,3 @@ Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.
 
 Support: [https://app.base44.com/support](https://app.base44.com/support)
 "# VerhuurApp" 
->>>>>>> 87e8be04d619a15b6247f6681d0c94349ab12375

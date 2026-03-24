@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     darkMode: ["class"],
@@ -87,7 +86,7 @@ module.exports = {
   	}
   },
   plugins: [require("tailwindcss-animate")],
-=======
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     darkMode: ["class"],
@@ -176,5 +175,4 @@ module.exports = {
   	}
   },
   plugins: [require("tailwindcss-animate")],
->>>>>>> 87e8be04d619a15b6247f6681d0c94349ab12375
 }
