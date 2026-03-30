@@ -1,315 +1,210 @@
-// pages/NieuweVerhuur.jsx
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { CheckCircle, AlertCircle, ArrowLeft, Loader2, History } from "lucide-react";
 import FactuurPrint from "@/components/FactuurPrint";
 
 export default function NieuweVerhuur() {
   const navigate = useNavigate();
-  const [rackets, setRackets] = useState([]);
-  const [dagprijs, setDagprijs] = useState(null);
+  const [rackets, setRackets] = useState<any[]>([]);
+  const [dagprijs, setDagprijs] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  
   const [form, setForm] = useState({
     voornaam: "", naam: "", email: "", klantnr: "", telefoon: "",
     teamplayer: "", opmerking: "", huurDagen: 3
   });
-  const [selectedRackets, setSelectedRackets] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [huurHistorie, setHuurHistorie] = useState([]);
-  const [factuurData, setFactuurData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  
+  const [selectedRackets, setSelectedRackets] = useState<any[]>([]);
+  const [huurHistorie, setHuurHistorie] = useState<any[]>([]);
+  const [factuurData, setFactuurData] = useState<any>(null);
 
   useEffect(() => {
-    const load = async () => {
+    const initPage = async () => {
       try {
-        const [racks, inst] = await Promise.all([
-          base44.entities.Racket.filter({ status: "Beschikbaar" }),
-          base44.entities.Instelling.filter({ sleutel: "dagprijs" }),
+        const [racksRes, settingsRes] = await Promise.all([
+          supabase.from('rackets').select('*').eq('status', 'Beschikbaar'),
+          supabase.from('settings').select('value').eq('key', 'dagprijs').single()
         ]);
-        setRackets(racks);
-        if (inst.length > 0 && inst[0].waarde && parseFloat(inst[0].waarde) > 0) {
-          setDagprijs(parseFloat(inst[0].waarde));
-        }
-      } catch (err) {
+        
+        if (racksRes.data) setRackets(racksRes.data);
+        if (settingsRes.data) setDagprijs(parseFloat(settingsRes.data.value));
+      } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-    load();
+    initPage();
   }, []);
 
-  const checkKlantHistorie = async (klantnr, email) => {
-    if (!klantnr && !email) {
-      setHuurHistorie([]);
-      return;
-    }
-    try {
-      const all = await base44.entities.Verhuur.list("-created_date", 500);
-      const hist = all.filter(v =>
-        (klantnr && v.klantnr === klantnr) ||
-        (email && v.email === email)
-      );
-      setHuurHistorie(hist);
-    } catch (err) {
-      console.error("Fout bij ophalen historie:", err);
-    }
-  };
+  const zoekKlant = async (val: string) => {
+    if (!val) return;
+    const { data } = await supabase
+      .from('customers')
+      .select('*, rentals(*)')
+      .or(`customer_nr.eq.${val},email.eq.${val}`)
+      .maybeSingle();
 
-  const zoekKlantOpNummer = async (klantnr) => {
-    if (!klantnr) return;
-    try {
-      const klanten = await base44.entities.Klant.filter({ klantnr });
-      if (klanten.length > 0) {
-        const k = klanten[0];
-        setForm(f => ({ ...f, voornaam: k.voornaam, naam: k.naam, email: k.email || "", telefoon: k.telefoon || "" }));
-      }
-      await checkKlantHistorie(klantnr, form.email);
-    } catch (err) {
-      console.error("Fout bij zoeken klant:", err);
+    if (data) {
+      setForm(f => ({
+        ...f,
+        voornaam: data.first_name || "",
+        naam: data.last_name || "",
+        email: data.email || "",
+        telefoon: data.phone || "",
+        klantnr: data.customer_nr || val
+      }));
+      setHuurHistorie(data.rentals || []);
     }
   };
 
-  const toggleRacket = (r) => {
-    if (selectedRackets.find(s => s.id === r.id)) {
-      setSelectedRackets(selectedRackets.filter(s => s.id !== r.id));
-    } else if (selectedRackets.length < 2) {
-      setSelectedRackets([...selectedRackets, r]);
-    }
+  const toggleRacket = (r: any) => {
+    const isSel = selectedRackets.find(s => s.id === r.id);
+    if (isSel) setSelectedRackets(selectedRackets.filter(s => s.id !== r.id));
+    else if (selectedRackets.length < 2) setSelectedRackets([...selectedRackets, r]);
   };
 
-  const calcBedrag = () => {
-    if (!dagprijs) return 0;
-    return selectedRackets.reduce((sum) => sum + dagprijs * Number(form.huurDagen), 0);
-  };
+  const calcBedrag = () => (dagprijs || 0) * selectedRackets.length * Number(form.huurDagen);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    if (selectedRackets.length === 0) { setError("Selecteer minstens 1 racket."); return; }
-    if (!form.voornaam || !form.naam) { setError("Voornaam en naam zijn verplicht."); return; }
-
+    if (selectedRackets.length === 0) return setError("Kies een racket.");
     setSaving(true);
+
     try {
-      const retourDatum = new Date();
-      retourDatum.setDate(retourDatum.getDate() + Number(form.huurDagen));
+      // 1. Klant Upsert (Zoeken op email of klantnr)
+      const { data: klant, error: kErr } = await supabase
+        .from('customers')
+        .upsert({
+          customer_nr: form.klantnr,
+          first_name: form.voornaam,
+          last_name: form.naam,
+          email: form.email,
+          phone: form.telefoon,
+          status: "Actief"
+        }, { onConflict: 'email' })
+        .select()
+        .single();
+
+      if (kErr) throw kErr;
+
       const verhuurnr = `VR${Date.now().toString().slice(-6)}`;
       const factuurnr = `FA${Date.now().toString().slice(-6)}`;
       const bedrag = calcBedrag();
 
-      // Klant aanmaken of updaten op basis van klantnr of email
-      if (form.voornaam && form.naam && form.email) {
-        const bestaande = await base44.entities.Klant.filter({ email: form.email });
-        if (bestaande.length === 0) {
-          await base44.entities.Klant.create({
-            klantnr: form.klantnr,
-            voornaam: form.voornaam,
-            naam: form.naam,
-            email: form.email,
-            telefoon: form.telefoon,
-            status: "Actief",
-          });
-        }
-      }
-
+      // 2. Verhuringen aanmaken & Rackets updaten
       for (const r of selectedRackets) {
-        await base44.entities.Verhuur.create({
-          verhuurnr,
-          voornaam: form.voornaam,
-          naam: form.naam,
-          email: form.email,
-          klantnr: form.klantnr,
-          telefoon: form.telefoon,
-          racket: r.naam,
-          racketcode: r.code,
-          teamplayer: form.teamplayer,
-          huurdatum: new Date().toISOString(),
-          retourdatum: retourDatum.toISOString(),
-          afgewerkt: false,
-          status: "Goedgekeurd",
-          notitie: form.opmerking,
-          factuurnr,
+        await supabase.from('rentals').insert({
+          customer_id: klant.id,
+          racket_id: r.id,
+          rental_date: new Date().toISOString(),
+          is_finished: false,
+          notes: form.opmerking
         });
-        await base44.entities.Racket.update(r.id, { status: "Verhuurd" });
+        await supabase.from('rackets').update({ status: 'Verhuurd' }).eq('id', r.id);
       }
 
+      // 3. Factuur aanmaken
       if (bedrag > 0) {
-        await base44.entities.Factuur.create({
-          factuurnr,
-          verhuurnr,
-          klantnr: form.klantnr,
-          bedrag,
-          datum: new Date().toISOString().split("T")[0],
-          status: "Openstaand",
+        await supabase.from('invoices').insert({
+          invoice_nr: factuurnr,
+          customer_id: klant.id,
+          amount: bedrag,
+          status: 'Openstaand'
         });
       }
 
       setFactuurData({
         factuurnr,
-        verhuurnr,
-        klantnr: form.klantnr,
         voornaam: form.voornaam,
         naam: form.naam,
-        email: form.email,
-        telefoon: form.telefoon,
-        huurDagen: form.huurDagen,
-        retourdatum: retourDatum.toISOString(),
         bedrag,
-        datum: new Date().toISOString().split("T")[0],
-        status: bedrag > 0 ? "Openstaand" : null,
-        regels: selectedRackets.map(r => ({
-          naam: r.naam,
-          code: r.code,
-          bedrag: dagprijs ? dagprijs * Number(form.huurDagen) : 0,
-        })),
+        regels: selectedRackets.map(r => ({ name: r.name, code: r.code }))
       });
-    } catch (err) {
+
+    } catch (err: any) {
       setError(err.message);
+    } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen bg-gray-50 p-6 text-center">Laden...</div>;
-  }
+  if (loading) return <div className="p-10 text-center"><Loader2 className="animate-spin mx-auto" /></div>;
 
-  if (factuurData) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-2xl mx-auto space-y-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Factuur Afdrukken</h1>
-          </div>
-          <FactuurPrint
-            factuur={factuurData}
-            onSave={() => navigate(createPageUrl("Verhuringen"))}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  const eerderGehuurd = [...new Set(huurHistorie.map(v => v.racketcode).filter(Boolean))];
-  const geselecteerdeMatch = selectedRackets.filter(r => eerderGehuurd.includes(r.code));
+  if (factuurData) return <FactuurPrint factuur={factuurData} onSave={() => navigate("/verhuringen")} />;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 text-gray-900">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
-          <Link to={createPageUrl("Dashboard")}>
-            <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Nieuwe Verhuur</h1>
+          <Link to="/"><Button variant="ghost" size="icon"><ArrowLeft /></Button></Link>
+          <h1 className="text-2xl font-bold">Nieuwe Verhuur</h1>
         </div>
-        {error && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-            <AlertCircle className="w-5 h-5" />{error}
-          </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Klantgegevens */}
+        <form onSubmit={handleSubmit} className="space-y-6">
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Klantgegevens</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-sm font-bold uppercase text-gray-500">Klant</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-4">
-              <div><Label>Voornaam *</Label><Input value={form.voornaam} onChange={e => setForm({...form, voornaam: e.target.value})} /></div>
-              <div><Label>Naam *</Label><Input value={form.naam} onChange={e => setForm({...form, naam: e.target.value})} /></div>
-              <div><Label>E-mail</Label><Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
-              <div>
-                <Label>Klantnummer</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={form.klantnr}
-                    onChange={e => setForm({...form, klantnr: e.target.value})}
-                    onBlur={e => zoekKlantOpNummer(e.target.value)}
-                    placeholder="Zoek klant..."
-                  />
-                </div>
+              <div className="col-span-2">
+                <Label>Klantnr of Email (Snelle zoek)</Label>
+                <Input onBlur={(e) => zoekKlant(e.target.value)} placeholder="Typ en klik buiten vak..." />
               </div>
-              <div><Label>Telefoon</Label><Input value={form.telefoon} onChange={e => setForm({...form, telefoon: e.target.value})} /></div>
-              <div><Label>Teamplayer</Label><Input value={form.teamplayer} onChange={e => setForm({...form, teamplayer: e.target.value})} /></div>
+              <Input placeholder="Voornaam" value={form.voornaam} onChange={e => setForm({...form, voornaam: e.target.value})} />
+              <Input placeholder="Naam" value={form.naam} onChange={e => setForm({...form, naam: e.target.value})} />
+              <Input placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+              <Input placeholder="Telefoon" value={form.telefoon} onChange={e => setForm({...form, telefoon: e.target.value})} />
             </CardContent>
           </Card>
 
-          {/* Verhuurhistorie waarschuwing */}
           {huurHistorie.length > 0 && (
-            <Card className="border border-amber-300 bg-amber-50">
-              <CardContent className="p-4 space-y-2">
-                <div className="font-semibold text-amber-800 text-sm">⚠️ Klant heeft al {huurHistorie.length} verhuring(en)</div>
-                <div className="text-xs text-amber-700">Eerder gehuurde rackets: <span className="font-medium">{eerderGehuurd.join(", ")}</span></div>
-                {geselecteerdeMatch.length > 0 && (
-                  <div className="text-xs text-red-700 font-medium bg-red-50 rounded px-2 py-1">
-                    🚨 Let op: {geselecteerdeMatch.map(r => r.code).join(", ")} werd al eerder gehuurd door deze klant!
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-amber-800 text-sm flex gap-3">
+              <History className="shrink-0" />
+              <div>
+                <p className="font-bold">Let op: Deze klant huurde al {huurHistorie.length} keer eerder.</p>
+              </div>
+            </div>
           )}
 
-          {/* Racket selectie */}
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Racket kiezen (max. 2)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {rackets.length === 0 ? (
-                <p className="text-gray-400 text-sm">Geen beschikbare rackets.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {rackets.map(r => {
-                    const sel = !!selectedRackets.find(s => s.id === r.id);
-                    const disabled = !sel && selectedRackets.length >= 2;
-                    return (
-                      <button
-                        type="button"
-                        key={r.id}
-                        onClick={() => !disabled && toggleRacket(r)}
-                        className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-all ${sel ? "bg-green-600 text-white border-green-600" : disabled ? "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed" : "bg-white text-gray-700 border-gray-300 hover:border-green-400"}`}
-                      >
-                        {r.code} · {r.naam}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+            <CardHeader><CardTitle className="text-sm font-bold uppercase text-gray-500">Rackets (Max 2)</CardTitle></CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {rackets.map(r => (
+                <Button
+                  key={r.id}
+                  type="button"
+                  variant={selectedRackets.find(s => s.id === r.id) ? "default" : "outline"}
+                  onClick={() => toggleRacket(r)}
+                  className="rounded-full"
+                >
+                  {r.code} - {r.name}
+                </Button>
+              ))}
             </CardContent>
           </Card>
 
-          {/* Details */}
           <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Aantal huurdagen (max 14)</Label>
-                <Input type="number" min={1} max={14} value={form.huurDagen} onChange={e => setForm({...form, huurDagen: e.target.value})} className="w-32" />
-              </div>
-              <div><Label>Opmerking</Label><Textarea value={form.opmerking} onChange={e => setForm({...form, opmerking: e.target.value})} rows={2} /></div>
-              {selectedRackets.length > 0 && dagprijs && (
-                <div className="bg-gray-50 rounded-lg p-3 text-sm">
-                  <div className="font-medium text-gray-700">Samenvatting</div>
-                  {selectedRackets.map(r => (
-                    <div key={r.id} className="text-gray-500">• {r.naam}: €{(dagprijs * Number(form.huurDagen)).toFixed(2)}</div>
-                  ))}
-                  <div className="font-bold text-gray-900 mt-1">Totaal: €{calcBedrag().toFixed(2)}</div>
+             <CardContent className="pt-6 space-y-4">
+                <div>
+                  <Label>Aantal dagen</Label>
+                  <Input type="number" value={form.huurDagen} onChange={e => setForm({...form, huurDagen: Number(e.target.value)})} className="w-24" />
                 </div>
-              )}
-            </CardContent>
+                <div className="p-4 bg-gray-100 rounded-lg flex justify-between items-center">
+                  <span className="font-bold">Totaal bedrag:</span>
+                  <span className="text-xl font-black">€{calcBedrag().toFixed(2)}</span>
+                </div>
+             </CardContent>
           </Card>
 
-          <Button type="submit" disabled={saving} className="w-full bg-green-600 hover:bg-green-700 h-12 text-base">
-            {saving ? "Opslaan..." : "Verhuur Opslaan"}
+          <Button type="submit" disabled={saving} className="w-full h-12 bg-green-600 hover:bg-green-700">
+            {saving ? "Bezig met opslaan..." : "Verhuur Bevestigen"}
           </Button>
         </form>
       </div>

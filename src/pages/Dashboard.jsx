@@ -1,6 +1,6 @@
 // pages/Dashboard.jsx
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabase";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
@@ -17,25 +17,46 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
 
   const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [v, r, k, f] = await Promise.all([
-        base44.entities.Verhuur.list("-created_date", 200),
-        base44.entities.Racket.list(),
-        base44.entities.Klant.list(),
-        base44.entities.Factuur.list(),
-      ]);
-      setVerhuur(v);
-      setRackets(r);
-      setKlanten(k);
-      setFacturen(f);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  setError(null);
+
+  try {
+    const [verhuurRes, racketsRes, klantenRes, facturenRes] = await Promise.all([
+      supabase
+        .from("verhuur")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200),
+
+      supabase
+        .from("racket")
+        .select("*"),
+
+      supabase
+        .from("klant")
+        .select("*"),
+
+      supabase
+        .from("factuur")
+        .select("*")
+    ]);
+
+    if (verhuurRes.error) throw verhuurRes.error;
+    if (racketsRes.error) throw racketsRes.error;
+    if (klantenRes.error) throw klantenRes.error;
+    if (facturenRes.error) throw facturenRes.error;
+
+    setVerhuur(verhuurRes.data || []);
+    setRackets(racketsRes.data || []);
+    setKlanten(klantenRes.data || []);
+    setFacturen(facturenRes.data || []);
+
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => { load(); }, []);
 
